@@ -1,0 +1,21 @@
+{
+  "name": "moped-sync",
+  "version": "0.0.1",
+  "description": "Synchronise a local collection with a remote server",
+  "keywords": [],
+  "dependencies": {
+    "clone": "~0.1.17",
+    "manip": "~0.9.3",
+    "mongomatch": "~0.1.0",
+    "promise": "^5.0.0",
+    "uid": "0.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ForbesLindesay/moped-sync.git"
+  },
+  "author": "ForbesLindesay",
+  "license": "MIT"
+}
