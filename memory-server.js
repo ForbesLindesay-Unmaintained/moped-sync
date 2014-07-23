@@ -21,6 +21,9 @@ MemoryServer.prototype.writeUpdate = function (update) {
   update.next = this.updates.length + 1;
   this.applyUpdate(update);
   this.updates.push(update);
+  this.waiting.forEach(function (waiting) {
+    waiting(update);
+  });
   return Promise.resolve(null);
 };
 
