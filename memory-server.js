@@ -11,22 +11,18 @@ function MemoryServer() {
   this.waiting = [];
 }
 
-MemoryServer.prototype.applyUpdate = function (update) {
-  var collection = this.state[update.collection] = this.state[update.collection] || [];
-  applyUpdate(collection, update);
-};
 MemoryServer.prototype.writeUpdate = function (update) {
   if (this.updates.some(function (u) { return ObjectId.equal(u.guid, update.guid); })) return;
   update._id = this.updates.length;
   update.next = this.updates.length + 1;
-  this.applyUpdate(update);
+  var collection = this.state[update.collection] = this.state[update.collection] || [];
+  applyUpdate(collection, update);
   this.updates.push(update);
   this.waiting.forEach(function (waiting) {
     waiting(update);
   });
   return Promise.resolve(null);
 };
-
 
 MemoryServer.prototype.getInitial = function () {
   return Promise.resolve({
