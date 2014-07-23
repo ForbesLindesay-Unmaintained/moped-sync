@@ -3,14 +3,18 @@
 var assert = require('assert');
 var clone = require('clone');
 var match = require('mongomatch');
-var manip = require('manip');
-var uid = require('uid');
+
+var ObjectId = require('./lib/object-id');
+var applyUpdate = require('./lib/apply-update');
 
 module.exports = Client;
-function Client(collections) {
+function Client(collections, initial) {
+  initial = clone(initial);
+  var state = initial && initial.action === 'initialize' ? initial.state : {};
   for (var i = 0; i < collections.length; i++) {
-    this[collections[i]] = new ClientCollection(collections[i], this._emitUpdate.bind(this), this._addedUpdate.bind(this));
+    this[collections[i]] = new ClientCollection(collections[i], state[collections[i]] || [], this._emitUpdate.bind(this), this._addedUpdate.bind(this));
   }
+  this.next = initial && initial.action === 'initialize' ? initial.next : null;
   this._updateHandlers = [];
   this._pendingChanges = [];
   this._localChangeHandlers = [];
@@ -55,8 +59,12 @@ Client.prototype.onLocalChange = function (fn) {
   this._localChangeHandlers.push(fn);
 };
 Client.prototype.writeUpdate = function (update) {
+  if (update.next !== undefined) {
+    this.next = update.next;
+  }
   this[update.collection].writeUpdate(update, '_remote');
 };
+
 Client.prototype.getFirstLocalChange = function () {
   if (this._pendingChanges.length === 0) {
     throw new Error('No changes are pending');
@@ -73,11 +81,11 @@ Client.prototype.getNumberOfLocalChanges = function () {
   return this._pendingChanges.length;
 };
 
-function ClientCollection(name, emitUpdate, addedUpdate) {
+function ClientCollection(name, data, emitUpdate, addedUpdate) {
   this._name = name;
   this._emitUpdate = emitUpdate;
   this._addedUpdate = addedUpdate;
-  this._remote = [];
+  this._remote = data;
   this._local = [];
   this._updates = [];
 }
@@ -85,61 +93,65 @@ ClientCollection.prototype.find = function (query) {
   if (!query) return clone(this._local);
   return clone(this._local.filter(match.bind(null, query)));
 };
-ClientCollection.prototype.applyUpdate = function (update, store) {
-  if (update.action === 'update') {
-    var updated = false;
-    for (var i = 0; i < this[store].length && !updated; i++) {
-      if (this[store][i]._id === update._id) {
-        this[store][i] = apply(this[store][i], update.update);
-        updated = true;
-      }
-    }
-    if (!updated) {
-      this[store].push(apply({_id: update._id}, update.update));
-    }
-  } else if (update.action === 'remove') {
-     this[store] = this[store].filter(function (obj) { return obj._id !== update._id; });
-  }
-};
 ClientCollection.prototype.writeUpdate = function (update, store) {
-  update.guid = update.guid || uid();
+  if (update.action === 'noop') return;
+  update.guid = update.guid || new ObjectId();
   update.collection = this._name;
   if (store === '_local') {
     this._updates.push(update);
   } else {
-    this._updates = this._updates.filter(function (u) { return u.guid !== update.guid; });
+    this._updates = this._updates.filter(function (u) { return !ObjectId.equal(u.guid, update.guid); });
   }
-  this.applyUpdate(update, store);
+  applyUpdate(this[store], update);
   if (store === '_local') {
     this._updates.push(update);
     this._addedUpdate(update);
   } else {
     this._local = clone(this._remote);
     for (var i = 0; i < this._updates.length; i++) {
-      this.applyUpdate(this._updates[i], '_local');
+      applyUpdate(this['_local'], this._updates[i]);
     }
   }
   this._emitUpdate();
 };
-ClientCollection.prototype.update = function (_id, update) {
+ClientCollection.prototype.insert = function (item) {
+  item._id = item._id || new ObjectId();
   this.writeUpdate({
-    action: 'update',
-    _id: _id,
-    update: update
+    action: 'insert',
+    item: clone(item)
   }, '_local');
+};
+ClientCollection.prototype.update = function (_id, update) {
+  if (typeof _id === 'string' || ObjectId.isObjectId(_id)) {
+    this.writeUpdate({
+      action: 'update',
+      itemId: _id,
+      update: clone(update)
+    }, '_local');
+  } else {
+    var items = this.find(_id);
+    for (var i = 0; i < items.length; i++) {
+      this.writeUpdate({
+        action: 'update',
+        itemId: items[i]._id,
+        update: clone(update)
+      }, '_local');
+    }
+  }
 };
 ClientCollection.prototype.remove = function (_id) {
-  this.writeUpdate({
-    action: 'remove',
-    _id: _id
-  }, '_local');
-};
-
-function apply(obj, update) {
-  if (Object.keys(update).some(function (key) { return key[0] === '$'; })) {
-    return manip(obj, update);
+  if (typeof _id === 'string' || ObjectId.isObjectId(_id)) {
+    this.writeUpdate({
+      action: 'remove',
+      itemId: _id
+    }, '_local');
   } else {
-    update._id = obj._id;
-    return update;
+    var items = this.find(_id);
+    for (var i = 0; i < items.length; i++) {
+      this.writeUpdate({
+        action: 'remove',
+        itemId: items[i]._id
+      }, '_local');
+    }
   }
-}
+};

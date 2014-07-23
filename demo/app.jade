@@ -1,0 +1,73 @@
+.row
+  .col-xs-12
+    .panel.panel-primary
+      .panel-heading Server
+      .panel-body
+        dl
+          each collection in collections
+            dt= collection
+            dd
+              each item in server.state[collection] || []
+                pre: code= inspect(item)
+.row
+  .col-xs-3
+    .panel.panel-info
+      .panel-heading To Upload
+      .panel-body
+        each change in clients['left-client']._pendingChanges
+          pre: code= inspect(change)
+        button.btn.btn-block.btn-default(onClick=sendChange('left-client') disabled=!clients['left-client'].getNumberOfLocalChanges()) Send Change
+  .col-xs-3
+    .panel.panel-success
+      .panel-heading To Download
+      .panel-body
+        each change in server.updates.slice(clients['left-client'].next).reverse()
+          pre: code= inspect(change)
+        button.btn.btn-block.btn-default(onClick=getChange('left-client')) Get Change
+  .col-xs-3
+    .panel.panel-info
+      .panel-heading To Upload
+      .panel-body
+        each change in clients['right-client']._pendingChanges
+          pre: code= inspect(change)
+        button.btn.btn-block.btn-default(onClick=sendChange('right-client') disabled=!clients['right-client'].getNumberOfLocalChanges()) Send Change
+  .col-xs-3
+    .panel.panel-success
+      .panel-heading To Download
+      .panel-body
+        each change in server.updates.slice(clients['right-client'].next).reverse()
+          pre: code= inspect(change)
+        button.btn.btn-block.btn-default(onClick=getChange('right-client')) Get Change
+
+.row
+  .col-xs-6
+    .panel.panel-primary
+      .panel-heading Left Client
+      .panel-body
+        dl
+          each collection in collections
+            dt= collection
+            dd
+              each item in clients['left-client'][collection].find()
+                pre: code= inspect(item)
+        textarea.form-control#left-client(rows="3" defaultValue="db.cars.insert({make: 'honda'});")
+        button.btn.btn-default.btn-block(style={"margin-top": "1em"} onClick=run('left-client')) Run
+  .col-xs-6
+    .panel.panel-primary
+      .panel-heading Right Client
+      .panel-body
+        dl
+          each collection in collections
+            dt= collection
+            dd
+              each item in clients['right-client'][collection].find()
+                pre: code= inspect(item)
+        textarea.form-control#right-client(rows="3" defaultValue="db.cars.insert({make: 'honda'});")
+        button.btn.btn-default.btn-block(style={"margin-top": "1em"} onClick=run('right-client')) Run
+if log.length
+  .row
+    .col-xs-12
+      .panel.panel-default
+        .panel-heading Log
+        .panel-body
+          pre= log.join('\n')
