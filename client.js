@@ -62,6 +62,7 @@ Client.prototype.writeUpdate = function (update) {
   if (update.next !== undefined) {
     this.next = update.next;
   }
+  if (update.action === 'noop') return;
   this[update.collection].writeUpdate(update, '_remote');
 };
 
@@ -94,7 +95,6 @@ ClientCollection.prototype.find = function (query) {
   return clone(this._local.filter(match.bind(null, query)));
 };
 ClientCollection.prototype.writeUpdate = function (update, store) {
-  if (update.action === 'noop') return;
   update.guid = update.guid || new ObjectId();
   update.collection = this._name;
   if (store === '_local') {
