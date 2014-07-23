@@ -87,7 +87,7 @@ function ClientCollection(name, data, emitUpdate, addedUpdate) {
   this._emitUpdate = emitUpdate;
   this._addedUpdate = addedUpdate;
   this._remote = data;
-  this._local = [];
+  this._local = clone(data);
   this._updates = [];
 }
 ClientCollection.prototype.find = function (query) {
