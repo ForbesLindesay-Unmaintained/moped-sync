@@ -5,11 +5,11 @@ var React = require('react');
 var jade = require('react-jade');
 var app = jade.compileFile(__dirname + '/app.jade');
 
-var MemoryServer = require('../memory-server.js');
-var Client = require('../client.js');
+var MemoryStore = require('moped-sync-store-memory');
+var Client = require('../');
 
-var server = new MemoryServer();
-server.getInitial().done(function (state) {
+var server = new MemoryStore();
+server.getInitial({cars: {}}).done(function (state) {
   var collections = ['cars'];
   var clients = {
     'left-client': new Client(collections, state),
@@ -31,15 +31,17 @@ server.getInitial().done(function (state) {
         log.push('run:' + id + ' ' + JSON.stringify(value));
         render();
       },
-      sendChange: function (id) {
-        server.writeUpdate(clients[id].getFirstLocalChange());
-        clients[id].setFirstLocalChangeHandled();
-        log.push('send:' + id);
-        render();
+      sendChanges: function (id) {
+        var changes = clients[id].getLocalChanges();
+        server.writeChanges(changes).done(function () {
+          clients[id].setLocalChangesHandled(changes.length);
+          log.push('send:' + id);
+          render();
+        });
       },
-      getChange: function (id) {
-        server.getUpdate(clients[id].next).done(function (change) {
-          clients[id].writeUpdate(change);
+      getChanges: function (id) {
+        server.getChanges(clients[id].next, {cars: {}}).done(function (change) {
+          clients[id].writeChanges(change);
           log.push('get:' + id);
           render();
         });

@@ -16,28 +16,28 @@
       .panel-body
         each change in clients['left-client']._pendingChanges
           pre: code= inspect(change)
-        button.btn.btn-block.btn-default(onClick=sendChange('left-client') disabled=!clients['left-client'].getNumberOfLocalChanges()) Send Change
+        button.btn.btn-block.btn-default(onClick=sendChanges('left-client') disabled=!clients['left-client'].getLocalChanges().length) Send Change
   .col-xs-3
     .panel.panel-success
       .panel-heading To Download
       .panel-body
-        each change in server.updates.slice(clients['left-client'].next).reverse()
+        each change in server.changes.slice(clients['left-client'].next).reverse()
           pre: code= inspect(change)
-        button.btn.btn-block.btn-default(onClick=getChange('left-client')) Get Change
+        button.btn.btn-block.btn-default(onClick=getChanges('left-client')) Get Change
   .col-xs-3
     .panel.panel-info
       .panel-heading To Upload
       .panel-body
         each change in clients['right-client']._pendingChanges
           pre: code= inspect(change)
-        button.btn.btn-block.btn-default(onClick=sendChange('right-client') disabled=!clients['right-client'].getNumberOfLocalChanges()) Send Change
+        button.btn.btn-block.btn-default(onClick=sendChanges('right-client') disabled=!clients['right-client'].getLocalChanges().length) Send Change
   .col-xs-3
     .panel.panel-success
       .panel-heading To Download
       .panel-body
-        each change in server.updates.slice(clients['right-client'].next).reverse()
+        each change in server.changes.slice(clients['right-client'].next).reverse()
           pre: code= inspect(change)
-        button.btn.btn-block.btn-default(onClick=getChange('right-client')) Get Change
+        button.btn.btn-block.btn-default(onClick=getChanges('right-client')) Get Change
 
 .row
   .col-xs-6

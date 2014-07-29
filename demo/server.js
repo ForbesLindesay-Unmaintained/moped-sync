@@ -11,4 +11,4 @@ app.get('/', function (req, res, next) {
 });
 app.get('/client.js', browserify(__dirname + '/index.js', {transform: require('react-jade'), cache: false}));
 
-app.listen(3000);
+app.listen(1337);

@@ -2,11 +2,11 @@
 
 var assert = require('assert');
 var Promise = require('promise');
-var Server = require('../memory-server.js');
-var Client = require('../client.js');
+var Server = require('moped-sync-store-memory');
+var Client = require('../');
 
 var server = new Server();
-server.getInitial().done(function (initial) {
+server.getInitial({cars: {}}).done(function (initial) {
   var left = new Client(['cars'], initial);
   var right = new Client(['cars'], initial);
 
@@ -22,17 +22,15 @@ server.getInitial().done(function (initial) {
   assert(right.cars.find()[0].make === 'honda');
 
   function syncDown(client) {
-    if (server.updates.length <= client.next) return Promise.resolve(null);
-    return server.getUpdate(client.next).then(function (update) {
-      client.writeUpdate(update);
-      return syncDown(client);
+    if (server.changes.length <= client.next) return Promise.resolve(null);
+    return server.getChanges(client.next, {cars: {}}).then(function (changes) {
+      client.writeChanges(changes);
     });
   }
   function syncUp(client) {
-    if (client.getNumberOfLocalChanges() === 0) return Promise.resolve(null);
-    return server.writeUpdate(client.getFirstLocalChange()).then(function () {
-      client.setFirstLocalChangeHandled();
-      return syncUp(client);
+    var changes = client.getLocalChanges();
+    return server.writeChanges(changes).then(function () {
+      client.setLocalChangesHandled(changes.length);
     });
   }
   function sync(client) {
@@ -55,5 +53,6 @@ server.getInitial().done(function (initial) {
     assert(left.cars.find({make: 'subaru'})[0].seats === 'leather');
     assert(left.cars.find({make: 'subaru'})[0].color === 'red');
     assert(right.cars.find({make: 'subaru'})[0].color === 'red');
+    console.log('tests passed');
   });
 });

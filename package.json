@@ -4,11 +4,14 @@
   "description": "Synchronise a local collection with a remote server",
   "keywords": [],
   "dependencies": {
+    "asap": "^1.0.0",
     "clone": "~0.1.17",
     "mongomatch": "~0.1.0",
-    "promise": "^5.0.0"
+    "moped-apply-update": "0.0.1",
+    "moped-id": "0.0.1"
   },
   "devDependencies": {
+    "moped-sync-store-memory": "0.0.2",
     "browserify-middleware": "^3.0.1",
     "express": "^4.6.1",
     "jade": "^1.4.2",
